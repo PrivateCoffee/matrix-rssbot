@@ -563,7 +563,8 @@ class RSSBot:
                 await self.send_state_event(
                     room, "rssbot.feed_state", {"timestamp": new_timestamp}, feed
                 )
-            except:
+            except Exception as e:
+                self.logger.log(f"Error processing feed at {feed}: {e}")
                 await self.send_message(
                     room,
                     f"Could not access or parse RSS feed at {feed}. Please ensure that you got the URL right, and that it is actually an RSS feed.",
