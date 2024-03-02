@@ -529,6 +529,8 @@ class RSSBot:
                     return event
 
     async def process_room(self, room):
+        self.logger.log(f"Processing room {room}", "debug")
+
         state = await self.get_state_event(room, "rssbot.feeds")
 
         if not state:
@@ -537,12 +539,14 @@ class RSSBot:
             feeds = state["content"]["feeds"]
 
         for feed in feeds:
+            self.logger.log(f"Processing {feed} in {room}", "debug")
+
             feed_state = await self.get_state_event(room, "rssbot.feed_state", feed)
 
             if feed_state:
                 self.logger.log(
-                    f"Identified timestamp as {feed_state['content']['timestamp']}",
-                    "debug"
+                    f"Identified feed timestamp as {feed_state['content']['timestamp']}",
+                    "debug",
                 )
                 timestamp = int(feed_state["content"]["timestamp"])
             else:
@@ -552,9 +556,15 @@ class RSSBot:
                 feed_content = feedparser.parse(feed)
                 new_timestamp = timestamp
                 for entry in feed_content.entries:
-                    entry_timestamp = int(
-                        datetime(*entry.published_parsed[:6]).timestamp()
-                    )
+                    try:
+                        entry_time_info = entry.published_parsed
+                    except:
+                        entry_time_info = entry.updated_parsed
+
+                    entry_timestamp = int(datetime(*entry_time_info[:6]).timestamp())
+
+                    self.logger.log(f"Entry timestamp identified as {entry_timestamp}")
+
                     if entry_timestamp > timestamp:
                         entry_message = f"__{feed_content.feed.title}: {entry.title}__\n\n{entry.description}\n\n{entry.link}"
                         await self.send_message(room, entry_message)
@@ -576,18 +586,23 @@ class RSSBot:
             self.logger.log("Starting to process rooms", "debug")
 
             start_timestamp = datetime.now()
-            
+
             for room in self.matrix_client.rooms.values():
                 try:
                     await self.process_room(room)
                 except Exception as e:
-                    self.logger.log(f"Something went wrong processing room {room.room_id}: {e}", "error")
+                    self.logger.log(
+                        f"Something went wrong processing room {room.room_id}: {e}",
+                        "error",
+                    )
 
             end_timestamp = datetime.now()
 
             self.logger.log("Done processing rooms", "debug")
 
-            if (time_taken := (end_timestamp - start_timestamp).seconds) < self.loop_duration:
+            if (
+                time_taken := (end_timestamp - start_timestamp).seconds
+            ) < self.loop_duration:
                 await asyncio.sleep(self.loop_duration - time_taken)
 
     async def run(self):
