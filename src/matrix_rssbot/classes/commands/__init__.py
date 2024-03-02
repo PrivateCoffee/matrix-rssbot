@@ -12,6 +12,7 @@ for command in [
     "addfeed",
     "listfeeds",
     "processfeeds",
+    "removefeed",
 ]:
     function = getattr(import_module(
         "." + command, "matrix_rssbot.classes.commands"), "command_" + command)
