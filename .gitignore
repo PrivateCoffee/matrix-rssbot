@@ -1,10 +1,6 @@
-*.db
-*.db.wal
-*.db-journal
 config.ini
-venv/
+.venv/
 *.pyc
 __pycache__/
-*.bak
 dist/
 pantalaimon.conf
