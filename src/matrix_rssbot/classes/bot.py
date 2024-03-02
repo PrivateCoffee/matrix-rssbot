@@ -320,7 +320,7 @@ class RSSBot:
                     self.room_ignore_list.append(invite)
 
             else:
-                self.send_message(invite, "Thank you for inviting me to your room!")
+                await self.send_message(invite, "Thank you for inviting me to your room!")
 
     async def upload_file(
         self,
