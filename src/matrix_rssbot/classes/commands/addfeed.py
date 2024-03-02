@@ -22,6 +22,8 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
 
     feeds.append(url)
 
+    feeds = list(set(feeds))
+
     try:
         feedparser.parse(url)
     except:

@@ -11,6 +11,6 @@ async def command_listfeeds(room: MatrixRoom, event: RoomMessageText, bot):
         message = "This room is currently bridged to the following feeds:\n\n"
 
         for key, value in enumerate(state["content"]["feeds"]):
-            message += f"- {key}: {value}"
+            message += f"- {key}: {value}\n"
 
     await bot.send_message(room, message, True)
