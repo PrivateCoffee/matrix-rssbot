@@ -50,6 +50,7 @@ import sys
 import traceback
 
 import markdown2
+import feedparser
 
 from .logging import Logger
 from .callbacks import RESPONSE_CALLBACKS, EVENT_CALLBACKS
@@ -71,6 +72,10 @@ class RSSBot:
     def sync_token(self) -> Optional[str]:
         if self.sync_response:
             return self.sync_response.next_batch
+
+    @property
+    def loop_duration(self) -> int:
+        return self.config["RSSBot"].getint("LoopDuration", 300)
 
     @property
     def allowed_users(self) -> List[str]:
@@ -320,7 +325,9 @@ class RSSBot:
                     self.room_ignore_list.append(invite)
 
             else:
-                await self.send_message(invite, "Thank you for inviting me to your room!")
+                await self.send_message(
+                    invite, "Thank you for inviting me to your room!"
+                )
 
     async def upload_file(
         self,
@@ -521,6 +528,67 @@ class RSSBot:
                 if state_key is None or event["state_key"] == state_key:
                     return event
 
+    async def process_room(self, room):
+        state = await self.get_state_event(room, "rssbot.feeds")
+
+        if not state:
+            feeds = []
+        else:
+            feeds = state["content"]["feeds"]
+
+        for feed in feeds:
+            feed_state = await self.get_state_event(room, "rssbot.feed_state", feed)
+
+            if feed_state:
+                self.logger.log(
+                    f"Identified timestamp as {feed_state['content']['timestamp']}",
+                    "debug"
+                )
+                timestamp = int(feed_state["content"]["timestamp"])
+            else:
+                timestamp = 0
+
+            try:
+                feed_content = feedparser.parse(feed)
+                new_timestamp = timestamp
+                for entry in feed_content.entries:
+                    entry_timestamp = int(
+                        datetime(*entry.published_parsed[:6]).timestamp()
+                    )
+                    if entry_timestamp > timestamp:
+                        entry_message = f"__{feed_content.feed.title}: {entry.title}__\n\n{entry.description}\n\n{entry.link}"
+                        await self.send_message(room, entry_message)
+                        new_timestamp = max(entry_timestamp, new_timestamp)
+
+                await self.send_state_event(
+                    room, "rssbot.feed_state", {"timestamp": new_timestamp}, feed
+                )
+            except:
+                await self.send_message(
+                    room,
+                    f"Could not access or parse RSS feed at {feed}. Please ensure that you got the URL right, and that it is actually an RSS feed.",
+                    True,
+                )
+
+    async def process_rooms(self):
+        while True:
+            self.logger.log("Starting to process rooms", "debug")
+
+            start_timestamp = datetime.now()
+            
+            for room in self.matrix_client.rooms.values():
+                try:
+                    await self.process_room(room)
+                except Exception as e:
+                    self.logger.log(f"Something went wrong processing room {room.room_id}: {e}", "error")
+
+            end_timestamp = datetime.now()
+
+            self.logger.log("Done processing rooms", "debug")
+
+            if (time_taken := (end_timestamp - start_timestamp).seconds) < self.loop_duration:
+                await asyncio.sleep(self.loop_duration - time_taken)
+
     async def run(self):
         """Start the bot."""
 
@@ -566,9 +634,15 @@ class RSSBot:
 
         # Start syncing events
         self.logger.log("Starting sync loop...", "warning")
+        sync_task = self.matrix_client.sync_forever(timeout=30000, full_state=True)
+        feed_task = self.process_rooms()
+
+        tasks = asyncio.gather(sync_task, feed_task)
+
         try:
-            await self.matrix_client.sync_forever(timeout=30000, full_state=True)
+            await tasks
         finally:
+            tasks.cancel()
             self.logger.log("Syncing one last time...", "warning")
             await self.matrix_client.sync(timeout=30000, full_state=True)
 
