@@ -503,8 +503,7 @@ class RSSBot:
             room, event_type, content, state_key
         )
 
-        if isinstance(response, RoomPutStateError):
-            self.logger.log(f"Error putting state in {room}")
+        return response
 
     async def get_state_event(
         self, room: MatrixRoom | str, event_type: str, state_key: Optional[str] = None

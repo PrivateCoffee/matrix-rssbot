@@ -23,9 +23,7 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
     feeds.append(url)
 
     try:
-        feed = feedparser.parse(url)
-        for entry in feed.entries:
-            print(entry)
+        feedparser.parse(url)
     except:
         await bot.send_state_event(
             f"Could not access or parse feed at {url}. Please ensure that you got the URL right, and that it is actually an RSS/Atom feed.",
@@ -33,13 +31,33 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
         )
 
     try:
-        await bot.send_state_event(
+        response1 = await bot.send_state_event(
             room,
             "rssbot.feed_state",
             {"timestamp": int(datetime.now().timestamp())},
             url,
         )
-        await bot.send_state_event(room, "rssbot.feeds", {"feeds": feeds})
+
+        if isinstance(response1, RoomPutStateError):
+            if response1.status_code == "M_FORBIDDEN":
+                await bot.send_message(
+                    room,
+                    "Unable to put status events into this room. Please ensure I have the required permissions, then try again.",
+                )
+
+            await bot.send_message(
+                room, "Unable to write feed state to the room. Please try again.", True
+            )
+            return
+
+        response2 = await bot.send_state_event(room, "rssbot.feeds", {"feeds": feeds})
+
+        if isinstance(response2, RoomPutStateError):
+            await bot.send_message(
+                room, "Unable to write feed list to the room. Please try again.", True
+            )
+            return
+
         await bot.send_message(room, f"Added {url} to this room's feeds.", True)
     except:
         await bot.send_message(
