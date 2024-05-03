@@ -18,8 +18,7 @@ def get_version():
     return package_version
 
 
-if __name__ == "__main__":
-    # Parse command line arguments
+def main():
     parser = ArgumentParser()
     parser.add_argument(
         "--config",
@@ -53,3 +52,6 @@ if __name__ == "__main__":
         print("Received KeyboardInterrupt - exiting...")
     except SystemExit:
         print("Received SIGTERM - exiting...")
+
+if __name__ == "__main__":
+    main()

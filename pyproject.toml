@@ -7,7 +7,7 @@ allow-direct-references = true
 
 [project]
 name = "matrix-rssbot"
-version = "0.1.0"
+version = "0.1.1"
 
 authors = [
   { name="Private.coffee Team", email="support@private.coffee" },
@@ -41,7 +41,7 @@ dependencies = [
 "Bug Tracker" = "https://git.private.coffee/PrivateCoffee/matrix-rssbot/issues"
 
 [project.scripts]
-rssbot = "matrix_rssbot:main"
+rssbot = "matrix_rssbot.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/matrix_rssbot"]
