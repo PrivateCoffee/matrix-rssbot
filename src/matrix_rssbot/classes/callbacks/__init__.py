@@ -1,13 +1,8 @@
 from nio import (
     RoomMessageText,
     InviteEvent,
-    Event,
     SyncResponse,
-    JoinResponse,
     RoomMemberEvent,
-    Response,
-    MegolmEvent,
-    KeysQueryResponse
 )
 
 from .sync import sync_callback

@@ -9,14 +9,16 @@ class Logger:
     def __init__(self, log_level: str = "warning"):
         if log_level not in self.LOG_LEVELS:
             raise ValueError(
-                f"Invalid log level {log_level}. Valid levels are {', '.join(self.LOG_LEVELS)}")
+                f"Invalid log level {log_level}. Valid levels are {', '.join(self.LOG_LEVELS)}"
+            )
 
         self.log_level = log_level
 
     def log(self, message: str, log_level: str = "info"):
         if log_level not in self.LOG_LEVELS:
             raise ValueError(
-                f"Invalid log level {log_level}. Valid levels are {', '.join(self.LOG_LEVELS)}")
+                f"Invalid log level {log_level}. Valid levels are {', '.join(self.LOG_LEVELS)}"
+            )
 
         if self.LOG_LEVELS.index(log_level) < self.LOG_LEVELS.index(self.log_level):
             return

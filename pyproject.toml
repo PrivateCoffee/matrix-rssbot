@@ -7,20 +7,16 @@ allow-direct-references = true
 
 [project]
 name = "matrix-rssbot"
-version = "0.1.1"
+version = "0.1.2"
 
-authors = [
-  { name="Private.coffee Team", email="support@private.coffee" },
-]
+authors = [{ name = "Private.coffee Team", email = "support@private.coffee" }]
 
 description = "Simple RSS feed bridge for Matrix"
 readme = "README.md"
-license = { file="LICENSE" }
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 
-packages = [
-    "src/matrix_rssbot"
-]
+packages = ["src/matrix_rssbot"]
 
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -29,12 +25,12 @@ classifiers = [
 ]
 
 dependencies = [
-    "matrix-nio",
-    "pantalaimon",
+    "matrix-nio>=0.24.0",
     "setuptools",
     "markdown2",
     "feedparser",
-    ]
+    "future>=1.0.0",
+]
 
 [project.urls]
 "Homepage" = "https://git.private.coffee/PrivateCoffee/matrix-rssbot"

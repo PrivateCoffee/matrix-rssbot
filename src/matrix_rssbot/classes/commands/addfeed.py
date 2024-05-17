@@ -3,7 +3,6 @@ from nio import RoomPutStateError
 from nio.rooms import MatrixRoom
 
 from datetime import datetime
-from urllib.request import urlopen
 
 import feedparser
 
@@ -26,11 +25,12 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
 
     try:
         feedparser.parse(url)
-    except:
+    except Exception as e:
         await bot.send_state_event(
             f"Could not access or parse feed at {url}. Please ensure that you got the URL right, and that it is actually an RSS/Atom feed.",
             True,
         )
+        bot.logger.log(f"Could not access or parse feed at {url}: {e}", "error")
 
     try:
         response1 = await bot.send_state_event(
@@ -50,6 +50,9 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
             await bot.send_message(
                 room, "Unable to write feed state to the room. Please try again.", True
             )
+            bot.logger.log(
+                f"Error adding feed to room {room.room_id}: {response1.error}", "error"
+            )
             return
 
         response2 = await bot.send_state_event(room, "rssbot.feeds", {"feeds": feeds})
@@ -58,10 +61,14 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
             await bot.send_message(
                 room, "Unable to write feed list to the room. Please try again.", True
             )
+            bot.logger.log(
+                f"Error adding feed to room {room.room_id}: {response2.error}", "error"
+            )
             return
 
         await bot.send_message(room, f"Added {url} to this room's feeds.", True)
-    except:
+    except Exception as e:
         await bot.send_message(
-            room, "Sorry, something went wrong. Please try again.", true
+            room, "Sorry, something went wrong. Please try again.", True
         )
+        bot.logger.log(f"Error adding feed to room {room.room_id}: {e}", "error")

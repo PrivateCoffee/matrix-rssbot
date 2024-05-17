@@ -1,5 +1,4 @@
 import asyncio
-import functools
 
 from nio import (
     AsyncClient,
@@ -10,27 +9,12 @@ from nio import (
     Response,
     MatrixRoom,
     Api,
-    RoomMessagesError,
-    GroupEncryptionError,
-    EncryptionError,
     RoomMessageText,
     RoomSendResponse,
     SyncResponse,
-    RoomMessageNotice,
     JoinError,
     RoomLeaveError,
     RoomSendError,
-    RoomVisibility,
-    RoomCreateError,
-    RoomMessageMedia,
-    RoomMessageImage,
-    RoomMessageFile,
-    RoomMessageAudio,
-    DownloadError,
-    DownloadResponse,
-    ToDeviceEvent,
-    ToDeviceError,
-    RoomPutStateError,
     RoomGetStateError,
 )
 
@@ -38,16 +22,10 @@ from typing import Optional, List
 from configparser import ConfigParser
 from datetime import datetime
 from io import BytesIO
-from pathlib import Path
-from contextlib import closing
 
-import base64
 import uuid
 import traceback
 import json
-import importlib.util
-import sys
-import traceback
 
 import markdown2
 import feedparser
@@ -86,8 +64,17 @@ class RSSBot:
         """
         try:
             return json.loads(self.config["RSSBot"]["AllowedUsers"])
-        except:
+        except Exception:
             return []
+
+    @property
+    def event_type(self) -> str:
+        """Event type of outgoing messages.
+
+        Returns:
+            str: The event type of outgoing messages. Either "text" or "notice".
+        """
+        return self.config["Matrix"].get("EventType", "notice")
 
     @property
     def display_name(self) -> str:
@@ -280,7 +267,7 @@ class RSSBot:
                 )
             return
 
-        task = asyncio.create_task(self._event_callback(room, event))
+        asyncio.create_task(self._event_callback(room, event))
 
     async def _response_callback(self, response: Response):
         for response_type, callback in RESPONSE_CALLBACKS.items():
@@ -288,7 +275,7 @@ class RSSBot:
                 await callback(response, self)
 
     async def response_callback(self, response: Response):
-        task = asyncio.create_task(self._response_callback(response))
+        asyncio.create_task(self._response_callback(response))
 
     async def accept_pending_invites(self):
         """Accept all pending invites."""
@@ -355,89 +342,6 @@ class RSSBot:
 
         return response.content_uri
 
-    async def send_image(
-        self, room: MatrixRoom, image: bytes, message: Optional[str] = None
-    ):
-        """Send an image to a room.
-
-        Args:
-            room (MatrixRoom|str): The room to send the image to.
-            image (bytes): The image to send.
-            message (str, optional): The message to send with the image. Defaults to None.
-        """
-
-        if isinstance(room, MatrixRoom):
-            room = room.room_id
-
-        self.logger.log(
-            f"Sending image of size {len(image)} bytes to room {room}", "debug"
-        )
-
-        bio = BytesIO(image)
-        img = Image.open(bio)
-        mime = Image.MIME[img.format]
-
-        (width, height) = img.size
-
-        self.logger.log(
-            f"Uploading - Image size: {width}x{height} pixels, MIME type: {mime}",
-            "debug",
-        )
-
-        content_uri = await self.upload_file(image, "image", mime)
-
-        self.logger.log("Uploaded image - sending message...", "debug")
-
-        content = {
-            "body": message or "",
-            "info": {
-                "mimetype": mime,
-                "size": len(image),
-                "w": width,
-                "h": height,
-            },
-            "msgtype": "m.image",
-            "url": content_uri,
-        }
-
-        status = await self.matrix_client.room_send(room, "m.room.message", content)
-
-        self.logger.log("Sent image", "debug")
-
-    async def send_file(
-        self, room: MatrixRoom, file: bytes, filename: str, mime: str, msgtype: str
-    ):
-        """Send a file to a room.
-
-        Args:
-            room (MatrixRoom|str): The room to send the file to.
-            file (bytes): The file to send.
-            filename (str): The name of the file.
-            mime (str): The MIME type of the file.
-        """
-
-        if isinstance(room, MatrixRoom):
-            room = room.room_id
-
-        self.logger.log(
-            f"Sending file of size {len(file)} bytes to room {room}", "debug"
-        )
-
-        content_uri = await self.upload_file(file, filename, mime)
-
-        self.logger.log("Uploaded file - sending message...", "debug")
-
-        content = {
-            "body": filename,
-            "info": {"mimetype": mime, "size": len(file)},
-            "msgtype": msgtype,
-            "url": content_uri,
-        }
-
-        status = await self.matrix_client.room_send(room, "m.room.message", content)
-
-        self.logger.log("Sent file", "debug")
-
     async def send_message(
         self,
         room: MatrixRoom | str,
@@ -475,11 +379,8 @@ class RSSBot:
                 "content": message,
             }
 
-        content = None
-
-        if not content:
-            msgtype = "m.room.message"
-            content = msgcontent
+        msgtype = "m.room.message"
+        content = msgcontent
 
         method, path, data = Api.room_send(
             self.matrix_client.access_token,
@@ -528,6 +429,22 @@ class RSSBot:
                 if state_key is None or event["state_key"] == state_key:
                     return event
 
+    async def get_event_type_for_room(self, room: MatrixRoom) -> str:
+        """Returns the event type to use for a room
+
+        Either the default event type or the event type set in the room's state
+
+        Args:
+            room (MatrixRoom): The room to get the event type for
+
+        Returns:
+            str: The event type to use
+        """
+        state = await self.get_state_event(room, "rssbot.event_type")
+        if state:
+            return state["content"]["event_type"]
+        return self.event_type
+
     async def process_room(self, room):
         self.logger.log(f"Processing room {room}", "debug")
 
@@ -558,7 +475,7 @@ class RSSBot:
                 for entry in feed_content.entries:
                     try:
                         entry_time_info = entry.published_parsed
-                    except:
+                    except Exception:
                         entry_time_info = entry.updated_parsed
 
                     entry_timestamp = int(datetime(*entry_time_info[:6]).timestamp())
@@ -567,7 +484,11 @@ class RSSBot:
 
                     if entry_timestamp > timestamp:
                         entry_message = f"__{feed_content.feed.title}: {entry.title}__\n\n{entry.description}\n\n{entry.link}"
-                        await self.send_message(room, entry_message)
+                        await self.send_message(
+                            room,
+                            entry_message,
+                            (await self.get_event_type_for_room(room)) == "notice",
+                        )
                         new_timestamp = max(entry_timestamp, new_timestamp)
 
                 await self.send_state_event(

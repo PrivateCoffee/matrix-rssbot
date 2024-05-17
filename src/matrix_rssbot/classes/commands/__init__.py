@@ -6,7 +6,6 @@ COMMANDS = {}
 
 for command in [
     "help",
-    "newroom",
     "botinfo",
     "privacy",
     "addfeed",
@@ -14,8 +13,10 @@ for command in [
     "processfeeds",
     "removefeed",
 ]:
-    function = getattr(import_module(
-        "." + command, "matrix_rssbot.classes.commands"), "command_" + command)
+    function = getattr(
+        import_module("." + command, "matrix_rssbot.classes.commands"),
+        "command_" + command,
+    )
     COMMANDS[command] = function
 
 COMMANDS[None] = command_unknown

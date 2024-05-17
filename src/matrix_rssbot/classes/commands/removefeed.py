@@ -1,5 +1,4 @@
 from nio.events.room_events import RoomMessageText
-from nio import RoomPutStateError
 from nio.rooms import MatrixRoom
 
 async def command_removefeed(room: MatrixRoom, event: RoomMessageText, bot):
@@ -14,7 +13,7 @@ async def command_removefeed(room: MatrixRoom, event: RoomMessageText, bot):
         
     if identifier.isnumeric():
         try:
-            feed = feeds.pop(int(identifier))
+            feeds.pop(int(identifier))
         except IndexError:
             await bot.send_message(room, f"There is no feed with index {identifier}.")
             return
@@ -22,7 +21,7 @@ async def command_removefeed(room: MatrixRoom, event: RoomMessageText, bot):
         try:
             feeds.remove(identifier)
         except ValueError:
-            await bot.send_message(room, f"There is no bridged feed with the provided URL.")
+            await bot.send_message(room, "There is no bridged feed with the provided URL.")
             return
 
     await bot.send_state_event(room, "rssbot.feeds", {"feeds": feeds})
