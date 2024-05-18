@@ -469,7 +469,7 @@ class RSSBot:
             feeds = state["content"]["feeds"]
 
         for feed in feeds:
-            self.logger.log(f"Processing {feed} in {room}", "debug")
+            self.logger.log(f"Processing {feed} in {room.room_id}", "debug")
 
             feed_state = await self.get_state_event(room, "rssbot.feed_state", feed)
 
