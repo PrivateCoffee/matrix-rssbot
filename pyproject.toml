@@ -7,7 +7,7 @@ allow-direct-references = true
 
 [project]
 name = "matrix-rssbot"
-version = "0.1.2"
+version = "0.1.3"
 
 authors = [{ name = "Private.coffee Team", email = "support@private.coffee" }]
 
