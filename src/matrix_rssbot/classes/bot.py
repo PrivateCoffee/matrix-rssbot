@@ -445,6 +445,19 @@ class RSSBot:
             return state["content"]["event_type"]
         return self.event_type
 
+    async def set_event_type_for_room(self, room: MatrixRoom, event_type: str):
+        """Sets the event type for a room
+
+        This does not check if the event type is valid
+
+        Args:
+            room (MatrixRoom): The room to set the event type for
+            event_type (str): The event type to set
+        """
+        await self.send_state_event(
+            room, "rssbot.event_type", {"event_type": event_type}
+        )
+
     async def process_room(self, room):
         self.logger.log(f"Processing room {room}", "debug")
 
