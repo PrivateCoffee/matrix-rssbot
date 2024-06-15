@@ -22,11 +22,14 @@ from typing import Optional, List
 from configparser import ConfigParser
 from datetime import datetime
 from io import BytesIO
+from urllib.parse import urlparse
 
 import uuid
 import traceback
 import json
 
+import aiohttp
+from aiohttp_socks import ProxyConnector
 import markdown2
 import feedparser
 
@@ -107,6 +110,24 @@ class RSSBot:
     USER_AGENT = (
         "matrix-rssbot/dev (+https://git.private.coffee/PrivateCoffee/matrix-rssbot)"
     )
+
+    @property
+    def proxy(self) -> Optional[str]:
+        """Proxy to use for HTTP requests.
+
+        Returns:
+            Optional[str]: The proxy to use for HTTP requests. Defaults to None.
+        """
+        return self.config["RSSBot"].get("Proxy")
+
+    @property
+    def proxy_onion_only(self) -> bool:
+        """Whether to use the proxy only for .onion URLs.
+
+        Returns:
+            bool: Whether to use the proxy only for .onion URLs. Defaults to False.
+        """
+        return self.config["RSSBot"].getboolean("ProxyOnionOnly", False)
 
     @classmethod
     def from_config(cls, config: ConfigParser):
@@ -458,6 +479,28 @@ class RSSBot:
             room, "rssbot.event_type", {"event_type": event_type}
         )
 
+    async def fetch_feed(self, url: str) -> feedparser.FeedParserDict:
+        """Fetch the RSS feed, using Tor SOCKS5 proxy for .onion URLs.
+
+        Args:
+            url (str): The URL of the RSS feed.
+
+        Returns:
+            feedparser.FeedParserDict: The parsed RSS feed.
+        """
+        parsed = urlparse(url)
+        if self.proxy and (
+            not self.proxy_onion_only or parsed.hostname.endswith(".onion")
+        ):
+            connector = ProxyConnector.from_url(self.proxy)
+        else:
+            connector = aiohttp.TCPConnector()
+
+        async with aiohttp.ClientSession(connector=connector) as session:
+            async with session.get(url) as response:
+                content = await response.text()
+                return feedparser.parse(content)
+
     async def process_room(self, room):
         self.logger.log(f"Processing room {room}", "debug")
 
@@ -483,7 +526,7 @@ class RSSBot:
                 timestamp = 0
 
             try:
-                feed_content = feedparser.parse(feed)
+                feed_content = await self.fetch_feed(feed)
                 new_timestamp = timestamp
                 for entry in feed_content.entries:
                     try:
