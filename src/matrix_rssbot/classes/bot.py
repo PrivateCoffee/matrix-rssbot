@@ -129,6 +129,15 @@ class RSSBot:
         """
         return self.config["RSSBot"].getboolean("ProxyOnionOnly", False)
 
+    @property
+    def operator(self) -> str:
+        """Operator of the bot.
+
+        Returns:
+            str: The operator of the bot. Defaults to "your Matrix administrator".
+        """
+        return self.config["RSSBot"].get("Operator", "your Matrix administrator")
+
     @classmethod
     def from_config(cls, config: ConfigParser):
         """Create a new RSSBot instance from a config file.
