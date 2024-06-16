@@ -244,6 +244,11 @@ class RSSBot:
             for eventtype, callback in EVENT_CALLBACKS.items():
                 if isinstance(event, eventtype):
                     await callback(room, event, self)
+
+                self.matrix_client.room_read_markers(
+                    room.room_id, event.event_id, event.event_id
+                )
+
         except Exception as e:
             self.logger.log(
                 f"Error in event callback for {event.__class__}: {e}", "error"

@@ -8,9 +8,9 @@ async def command_help(room: MatrixRoom, event: RoomMessageText, bot):
 - !rssbot help - Show this message
 - !rssbot botinfo - Show information about the bot
 - !rssbot privacy - Show privacy information
-- !rssbot addfeed [--backfill] \<url\> - Bridges a new feed to the current room (optionally backfilling all current entries)
+- !rssbot addfeed [--backfill] <url> - Bridges a new feed to the current room (optionally backfilling all current entries)
 - !rssbot listfeeds - Lists all bridged feeds
-- !rssbot removefeed \<index|url\> - Removes a bridged feed given the numeric index from the listfeeds command or the URL of the feed
+- !rssbot removefeed <index|url> - Removes a bridged feed given the numeric index from the listfeeds command or the URL of the feed
 - !rssbot eventtype [text|notice] - Sets the event type for the current room, overriding the default event type
 """
 
