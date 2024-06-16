@@ -587,7 +587,25 @@ class RSSBot:
 
         feed_content = await self.fetch_feed(url)
 
-        for entry in feed_content.entries:
+        try:
+            ordered_entries = sorted(
+                feed_content.entries,
+                key=lambda entry: int(
+                    datetime(*entry.published_parsed[:6]).timestamp()
+                ),
+            )
+        except Exception:
+            try:
+                ordered_entries = sorted(
+                    feed_content.entries,
+                    key=lambda entry: int(
+                        datetime(*entry.updated_parsed[:6]).timestamp()
+                    ),
+                )
+            except Exception:
+                ordered_entries = feed_content.entries
+
+        for entry in ordered_entries:
             entry_message = f"__{feed_content.feed.title}: {entry.title}__\n\n{entry.description}\n\n{entry.link}"
             await self.send_message(
                 room,
