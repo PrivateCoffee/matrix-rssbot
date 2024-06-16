@@ -561,11 +561,13 @@ class RSSBot:
                 )
             except Exception as e:
                 self.logger.log(f"Error processing feed at {feed}: {e}")
-                await self.send_message(
-                    room,
-                    f"Could not access or parse RSS feed at {feed}. Please ensure that you got the URL right, and that it is actually an RSS feed.",
-                    True,
-                )
+
+                if self.debug:
+                    await self.send_message(
+                        room,
+                        f"Could not access or parse RSS feed at {feed}. Please ensure that you got the URL right, and that it is actually an RSS feed.",
+                        True,
+                    )
 
     async def process_rooms(self):
         while True:
