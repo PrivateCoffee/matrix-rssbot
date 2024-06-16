@@ -582,6 +582,19 @@ class RSSBot:
             ) < self.loop_duration:
                 await asyncio.sleep(self.loop_duration - time_taken)
 
+    async def backfill_feed(self, room: MatrixRoom, url: str):
+        self.logger.log(f"Backfilling feed {url} in room {room.room_id}", "debug")
+
+        feed_content = await self.fetch_feed(url)
+
+        for entry in feed_content.entries:
+            entry_message = f"__{feed_content.feed.title}: {entry.title}__\n\n{entry.description}\n\n{entry.link}"
+            await self.send_message(
+                room,
+                entry_message,
+                (await self.get_event_type_for_room(room)) == "notice",
+            )
+
     async def run(self):
         """Start the bot."""
 

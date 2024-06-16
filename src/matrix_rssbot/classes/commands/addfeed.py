@@ -8,7 +8,24 @@ import feedparser
 
 
 async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
-    url = event.body.split()[2]
+    args = event.body.split()[2:]
+
+    if not args:
+        await bot.send_message(room, "Please provide a feed URL to add.", True)
+        return
+
+    if "--backfill" in args:
+        backfill = True
+        args.remove("--backfill")
+
+    else:
+        backfill = False
+
+    if len(args) != 1:
+        await bot.send_message(room, "Please provide only one feed URL.", True)
+        return
+
+    url = args[0]
 
     bot.logger.log(f"Adding new feed to room {room.room_id}")
 
@@ -67,6 +84,16 @@ async def command_addfeed(room: MatrixRoom, event: RoomMessageText, bot):
             return
 
         await bot.send_message(room, f"Added {url} to this room's feeds.", True)
+
+        if backfill:
+            await bot.send_message(
+                room,
+                "Backfilling messages from the feed. This may take a while, depending on the feed size.",
+                True,
+            )
+
+            await bot.backfill_feed(room, url)
+
     except Exception as e:
         await bot.send_message(
             room, "Sorry, something went wrong. Please try again.", True
